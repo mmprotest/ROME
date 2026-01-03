@@ -1,0 +1,15 @@
+id: python_fix_test
+description: Fix a small Python function so tests pass.
+goal: Make add function return the correct sum.
+setup_steps:
+  - "printf 'def add(a, b):\n    return a - b\n' > math_utils.py"
+  - "printf 'from math_utils import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n' > test_math_utils.py"
+success_criteria:
+  type: unit_tests_pass
+  command: "python -m pytest -q"
+constraints:
+  network: false
+  time_limit_s: 60
+  max_steps: 10
+scoring:
+  max_score: 1.0
