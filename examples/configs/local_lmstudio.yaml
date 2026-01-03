@@ -1,0 +1,13 @@
+llm:
+  base_url: "http://127.0.0.1:1234/v1"
+  api_key: "lm-studio"
+  model: "local-model"
+  temperature: 0.2
+  max_tokens: 1024
+  timeout_s: 120
+agent:
+  max_steps: 40
+  max_turns: 80
+  tool_timeout_s: 60
+  context_max_tokens: 8000
+  memory_items: 20

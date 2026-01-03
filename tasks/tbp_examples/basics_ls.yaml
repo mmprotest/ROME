@@ -1,0 +1,14 @@
+id: basics_ls
+description: List files in the workspace.
+goal: Ensure the file hello.txt is present in the workspace.
+setup_steps:
+  - "touch hello.txt"
+success_criteria:
+  type: command_exit_code
+  command: "ls hello.txt"
+constraints:
+  network: false
+  time_limit_s: 30
+  max_steps: 10
+scoring:
+  max_score: 1.0

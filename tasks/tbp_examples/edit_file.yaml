@@ -1,0 +1,15 @@
+id: edit_file
+description: Fix a simple text file.
+goal: Update note.txt to contain the word fixed.
+setup_steps:
+  - "printf 'broken' > note.txt"
+success_criteria:
+  type: file_contains
+  file: "note.txt"
+  contains: "fixed"
+constraints:
+  network: false
+  time_limit_s: 30
+  max_steps: 10
+scoring:
+  max_score: 1.0
