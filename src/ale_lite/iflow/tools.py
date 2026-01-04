@@ -90,7 +90,11 @@ TOOL_REGISTRY: dict[str, ToolHandler] = {
 }
 
 
-def dispatch_tool(sandbox: Sandbox, name: str, arguments_json: str) -> ToolResult:
+def dispatch_tool_args(sandbox: Sandbox, name: str, arguments: dict[str, Any]) -> ToolResult:
     handler = TOOL_REGISTRY[name]
+    return handler(sandbox, arguments)
+
+
+def dispatch_tool(sandbox: Sandbox, name: str, arguments_json: str) -> ToolResult:
     args = json.loads(arguments_json) if arguments_json else {}
-    return handler(sandbox, args)
+    return dispatch_tool_args(sandbox, name, args)

@@ -30,6 +30,7 @@ def replay_command(
     trajectory: Path = typer.Option(..., "--trajectory", exists=True, dir_okay=False),
     reexec_tools_flag: bool = typer.Option(False, "--reexec-tools"),
     prefer_docker: bool = typer.Option(False, "--prefer-docker"),
+    backend: str = typer.Option("auto", "--backend"),
     image: str | None = typer.Option(None, "--image"),
 ) -> None:
     events = replay(trajectory)
@@ -46,9 +47,16 @@ def replay_command(
         {},
     )
     network_enabled = bool(sandbox_info.get("network_enabled", False))
-    prefer_docker = prefer_docker or sandbox_info.get("type") == "docker"
-    image = image or sandbox_info.get("image")
-    sandbox = make_sandbox(SandboxConfig(network_enabled=network_enabled), prefer_docker=prefer_docker, image=image)
+    sandbox_backend = backend
+    if sandbox_backend == "auto" and sandbox_info.get("type") in {"docker", "local"}:
+        sandbox_backend = sandbox_info["type"]
+    sandbox_config = SandboxConfig(
+        backend=sandbox_backend,
+        prefer_docker=prefer_docker or sandbox_info.get("type") == "docker",
+        image=image or sandbox_info.get("image"),
+        network_enabled=network_enabled,
+    )
+    sandbox = make_sandbox(sandbox_config)
     sandbox.create_workspace()
     diffs = reexec_tools(events, sandbox)
     sandbox.teardown()

@@ -59,9 +59,15 @@ def tool_event(name: str, arguments: dict[str, Any], result: dict[str, Any]) -> 
     }
 
 
-def config_event(model: Dict[str, Any], sandbox: Dict[str, Any]) -> Dict[str, Any]:
-    return {"model": model, "sandbox": sandbox}
+def config_event(model: Dict[str, Any], sandbox: Dict[str, Any], agent: Dict[str, Any]) -> Dict[str, Any]:
+    return {"model": model, "sandbox": sandbox, "agent": agent}
 
 
-def outcome_event(success: bool, score: float, reason: str) -> Dict[str, Any]:
-    return {"success": success, "score": score, "reason": reason}
+def outcome_event(success: bool, score: float, reason: str, outcome: str, duration_s: float) -> Dict[str, Any]:
+    return {
+        "success": success,
+        "score": score,
+        "reason": reason,
+        "outcome": outcome,
+        "duration_s": duration_s,
+    }

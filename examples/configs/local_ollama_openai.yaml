@@ -9,5 +9,9 @@ agent:
   max_steps: 40
   max_turns: 80
   tool_timeout_s: 60
+  time_limit_s: 600
   context_max_tokens: 8000
   memory_items: 20
+sandbox:
+  backend: auto
+  network: false

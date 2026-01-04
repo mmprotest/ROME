@@ -36,16 +36,21 @@ def run_task(
 ) -> RunResult:
     out_dir.mkdir(parents=True, exist_ok=True)
     sandbox_cfg = config.get("sandbox", {})
+    network_enabled = bool(
+        task.constraints.get(
+            "network",
+            sandbox_cfg.get("network_enabled", sandbox_cfg.get("network", False)),
+        )
+    )
     sandbox_config = SandboxConfig(
-        network_enabled=bool(task.constraints.get("network", False)),
+        backend=sandbox_cfg.get("backend"),
+        prefer_docker=bool(sandbox_cfg.get("prefer_docker", False)),
+        image=sandbox_cfg.get("image"),
+        network_enabled=network_enabled,
         allowlist_paths=sandbox_cfg.get("allowlist_paths"),
         time_limit_s=int(task.constraints.get("time_limit_s", 30)),
     )
-    sandbox = make_sandbox(
-        sandbox_config,
-        prefer_docker=bool(sandbox_cfg.get("prefer_docker", False)),
-        image=task.image or sandbox_cfg.get("image"),
-    )
+    sandbox = make_sandbox(sandbox_config, task_image=task.image)
     sandbox.create_workspace()
     trajectory_path = out_dir / f"{task.id}_trajectory.jsonl"
     trajectory = TrajectoryWriter(trajectory_path)
@@ -56,6 +61,7 @@ def run_task(
     if agent_factory is None:
         llm_config = config["llm"]
         agent_cfg = config.get("agent", {})
+        time_limit_s = float(task.constraints.get("time_limit_s", agent_cfg.get("time_limit_s", 600)))
         client = OpenAIChatClient(
             OpenAIConfig(
                 base_url=str(llm_config["base_url"]),
@@ -74,6 +80,7 @@ def run_task(
                 max_steps=int(agent_cfg.get("max_steps", 40)),
                 max_turns=int(agent_cfg.get("max_turns", 80)),
                 tool_timeout_s=float(agent_cfg.get("tool_timeout_s", 60)),
+                time_limit_s=time_limit_s,
                 context_max_tokens=int(agent_cfg.get("context_max_tokens", 8000)),
                 memory_items=int(agent_cfg.get("memory_items", 20)),
             ),
@@ -85,7 +92,16 @@ def run_task(
     result = agent.run(agent_task)
 
     score_result = evaluate(sandbox, task.success_criteria)
-    trajectory.log("outcome", outcome_event(score_result.success, score_result.score, result.reason))
+    trajectory.log(
+        "outcome",
+        outcome_event(
+            score_result.success,
+            score_result.score,
+            result.reason,
+            result.outcome,
+            result.duration_s,
+        ),
+    )
     sandbox.teardown()
 
     return RunResult(
