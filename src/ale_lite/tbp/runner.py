@@ -8,8 +8,8 @@ from ale_lite.api.openai_client import OpenAIChatClient, OpenAIConfig
 from ale_lite.iflow.agent import Agent, AgentConfig
 from ale_lite.iflow.prompts import TaskSpec as AgentTaskSpec
 from ale_lite.iflow.trajectory import TrajectoryWriter, outcome_event
-from ale_lite.rock.local_sandbox import LocalSandbox
-from ale_lite.rock.sandbox import SandboxConfig
+from ale_lite.rock.factory import make_sandbox
+from ale_lite.rock.sandbox import Sandbox, SandboxConfig
 from ale_lite.tbp.scoring import ScoreResult, evaluate
 from ale_lite.tbp.tasks import TaskSpec
 
@@ -32,13 +32,20 @@ def run_task(
     task: TaskSpec,
     config: Dict[str, Dict[str, object]],
     out_dir: Path,
-    agent_factory: Optional[Callable[[LocalSandbox, TrajectoryWriter], Agent]] = None,
+    agent_factory: Optional[Callable[[Sandbox, TrajectoryWriter], Agent]] = None,
 ) -> RunResult:
     out_dir.mkdir(parents=True, exist_ok=True)
+    sandbox_cfg = config.get("sandbox", {})
     sandbox_config = SandboxConfig(
         network_enabled=bool(task.constraints.get("network", False)),
+        allowlist_paths=sandbox_cfg.get("allowlist_paths"),
+        time_limit_s=int(task.constraints.get("time_limit_s", 30)),
     )
-    sandbox = LocalSandbox(sandbox_config)
+    sandbox = make_sandbox(
+        sandbox_config,
+        prefer_docker=bool(sandbox_cfg.get("prefer_docker", False)),
+        image=task.image or sandbox_cfg.get("image"),
+    )
     sandbox.create_workspace()
     trajectory_path = out_dir / f"{task.id}_trajectory.jsonl"
     trajectory = TrajectoryWriter(trajectory_path)

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import importlib
 import time
+import json
+import math
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Optional, Tuple, Type
 
@@ -145,10 +147,93 @@ def tool_choice_auto() -> str:
     return "auto"
 
 
-def build_messages(system_prompt: str, user_prompt: str, memory: Iterable[dict[str, Any]]) -> List[dict[str, Any]]:
+def estimate_tokens(text: str) -> int:
+    """Approximate token usage as len(text) / 4 for deterministic budgeting."""
+    if not text:
+        return 0
+    return max(1, math.floor(len(text) / 4))
+
+
+def _message_token_cost(message: dict[str, Any]) -> int:
+    content = message.get("content", "")
+    tool_calls = message.get("tool_calls")
+    if tool_calls:
+        content += json.dumps(tool_calls, sort_keys=True)
+    return estimate_tokens(content)
+
+
+def _truncate_to_budget(text: str, max_tokens: int) -> str:
+    if max_tokens <= 0:
+        return ""
+    max_chars = max_tokens * 4
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars] + "...<truncated>"
+
+
+def _summarize_messages(messages: Iterable[dict[str, Any]]) -> str:
+    lines: List[str] = []
+    for message in messages:
+        role = message.get("role", "unknown")
+        content = message.get("content", "")
+        lines.append(f"{role}: {content[:200]}")
+    return "\n".join(lines) if lines else "No prior steps."
+
+
+def build_messages(
+    system_prompt: str,
+    user_prompt: str,
+    memory: Iterable[dict[str, Any]],
+    *,
+    max_tokens: Optional[int] = None,
+    memory_summary: Optional[str] = None,
+) -> List[dict[str, Any]]:
     messages: List[dict[str, Any]] = [
         {"role": "system", "content": system_prompt},
         {"role": "user", "content": user_prompt},
     ]
-    messages.extend(memory)
+    memory_list = list(memory)
+    if max_tokens is None:
+        messages.extend(memory_list)
+        return messages
+
+    base_tokens = sum(_message_token_cost(message) for message in messages)
+    if base_tokens >= max_tokens:
+        return messages
+
+    selected: List[dict[str, Any]] = []
+    remaining = max_tokens - base_tokens
+    for message in reversed(memory_list):
+        cost = _message_token_cost(message)
+        if cost > remaining:
+            break
+        selected.append(message)
+        remaining -= cost
+    selected.reverse()
+
+    omitted_count = len(memory_list) - len(selected)
+    if omitted_count > 0:
+        summary_text = memory_summary or _summarize_messages(memory_list[:omitted_count])
+        prefix = "Working memory summary:\n"
+        summary_budget = remaining - estimate_tokens(prefix)
+        summary_text = _truncate_to_budget(summary_text, summary_budget)
+        if summary_text:
+            summary_message = f"{prefix}{summary_text}"
+            messages.append({"role": "system", "content": summary_message})
+            remaining -= estimate_tokens(summary_message)
+
+    messages.extend(selected)
+
+    total_tokens = sum(_message_token_cost(message) for message in messages)
+    while total_tokens > max_tokens and selected:
+        removed = selected.pop(0)
+        messages.remove(removed)
+        total_tokens -= _message_token_cost(removed)
+    if total_tokens > max_tokens:
+        summary_messages = [m for m in messages if m.get("role") == "system" and "summary" in m.get("content", "")]
+        for summary_message in summary_messages:
+            messages.remove(summary_message)
+            total_tokens -= _message_token_cost(summary_message)
+            if total_tokens <= max_tokens:
+                break
     return messages

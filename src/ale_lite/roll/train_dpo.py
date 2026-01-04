@@ -12,6 +12,7 @@ class TrainConfig:
     model_name_or_path: str
     dataset_path: str
     output_dir: str
+    full_finetune: bool = False
 
 
 def load_train_config(path: Path) -> TrainConfig:
@@ -20,6 +21,7 @@ def load_train_config(path: Path) -> TrainConfig:
         model_name_or_path=data["model_name_or_path"],
         dataset_path=data["dataset_path"],
         output_dir=data["output_dir"],
+        full_finetune=bool(data.get("full_finetune", False)),
     )
 
 
@@ -29,15 +31,26 @@ def train_dpo(config: TrainConfig) -> None:
         from peft import LoraConfig, get_peft_model
         from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments
         from trl import DPOTrainer
+        import accelerate  # noqa: F401
     except ImportError as exc:
-        raise RuntimeError("DPO training requires optional dependencies: trl, peft, transformers") from exc
+        raise RuntimeError(
+            "DPO training requires optional dependencies. "
+            "Install with: pip install -e .[train]"
+        ) from exc
 
     dataset = load_dataset("json", data_files=config.dataset_path)["train"]
     model = AutoModelForCausalLM.from_pretrained(config.model_name_or_path)
     tokenizer = AutoTokenizer.from_pretrained(config.model_name_or_path)
 
-    peft_config = LoraConfig(r=8, lora_alpha=16, lora_dropout=0.1)
-    model = get_peft_model(model, peft_config)
+    if not config.full_finetune:
+        peft_config = LoraConfig(
+            r=8,
+            lora_alpha=16,
+            lora_dropout=0.1,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        model = get_peft_model(model, peft_config)
 
     training_args = TrainingArguments(
         output_dir=config.output_dir,

@@ -41,5 +41,5 @@ class Sandbox(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def describe(self) -> Dict[str, str]:
+    def describe(self) -> Dict[str, object]:
         raise NotImplementedError
