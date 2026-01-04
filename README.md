@@ -51,14 +51,20 @@ agent:
   max_steps: 40
   max_turns: 80
   tool_timeout_s: 60
+  time_limit_s: 600
   context_max_tokens: 8000
+sandbox:
+  backend: auto # auto | docker | local
+  image: "python:3.11-slim"
+  network: false
+  allowlist_paths: []
 ```
 
 The client uses the official `openai` Python SDK (v1) and supports `base_url`, `api_key`, and configurable `model` values.
 
 ## ROCK sandbox isolation
 
-ROCK provides a local sandbox backend with per-run temporary workspaces, resource limits, and best-effort network blocking. **LocalSandbox cannot fully disable network access**; it only clears proxy variables and should be treated as best-effort containment. For real contamination control and network isolation, use DockerSandbox (when Docker is available). Use `rock doctor` to check backend availability.
+ROCK provides a local sandbox backend with per-run temporary workspaces, resource limits, and best-effort network blocking. **LocalSandbox cannot fully disable network access**; it only clears proxy variables and should be treated as best-effort containment. For real containment control and network isolation, use DockerSandbox when Docker is available. The default `auto` backend selects Docker when available, otherwise Local. Use `rock doctor` to check backend availability.
 
 ## TBP harness
 

@@ -7,6 +7,9 @@ from typing import Dict, List
 
 @dataclass
 class SandboxConfig:
+    backend: str | None = None
+    prefer_docker: bool = False
+    image: str | None = None
     network_enabled: bool = False
     allowlist_paths: List[str] | None = None
     time_limit_s: int = 30

@@ -17,9 +17,5 @@ def system_prompt() -> str:
     )
 
 
-def task_prompt(task: TaskSpec, memory_summary: str) -> str:
-    return (
-        f"Task goal:\n{task.goal}\n\n"
-        f"Evaluation:\n{task.evaluation}\n\n"
-        f"Working memory summary:\n{memory_summary}"
-    )
+def task_prompt(task: TaskSpec) -> str:
+    return f"Task goal:\n{task.goal}\n\nEvaluation:\n{task.evaluation}"
