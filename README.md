@@ -58,7 +58,7 @@ The client uses the official `openai` Python SDK (v1) and supports `base_url`, `
 
 ## ROCK sandbox isolation
 
-ROCK provides a local sandbox backend with per-run temporary workspaces, resource limits, and best-effort network blocking. It enforces strict path safety for file operations. Docker support is stubbed for future expansion; use `rock doctor` to check availability.
+ROCK provides a local sandbox backend with per-run temporary workspaces, resource limits, and best-effort network blocking. **LocalSandbox cannot fully disable network access**; it only clears proxy variables and should be treated as best-effort containment. For real contamination control and network isolation, use DockerSandbox (when Docker is available). Use `rock doctor` to check backend availability.
 
 ## TBP harness
 

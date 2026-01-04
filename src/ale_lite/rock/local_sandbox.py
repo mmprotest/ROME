@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import shutil
 import subprocess
 import tempfile
 from pathlib import Path
@@ -77,12 +76,8 @@ class LocalSandbox(Sandbox):
         self._tmpdir = None
         self.workspace = None
 
-    def describe(self) -> Dict[str, str]:
+    def describe(self) -> Dict[str, object]:
         return {
             "type": "local",
-            "network_enabled": str(self.config.network_enabled),
+            "network_enabled": self.config.network_enabled,
         }
-
-
-def docker_available() -> bool:
-    return shutil.which("docker") is not None

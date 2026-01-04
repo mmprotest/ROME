@@ -54,8 +54,13 @@ class Agent:
             ),
         )
         for step in range(self.config.max_steps):
-            summary = self.memory.summarize()
-            messages = build_messages(system_prompt(), task_prompt(task, summary), self.memory.to_messages())
+            summary = self.memory.summarize(max_chars=1000)
+            messages = build_messages(
+                system_prompt(),
+                task_prompt(task, summary),
+                self.memory.to_messages(),
+                max_tokens=self.config.context_max_tokens,
+            )
             response = self.client.chat(
                 messages=messages,
                 tools=tool_schema(),
